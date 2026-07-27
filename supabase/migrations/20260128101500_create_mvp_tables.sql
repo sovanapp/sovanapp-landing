@@ -49,8 +49,10 @@ CREATE TABLE IF NOT EXISTS orders (
   track_id uuid NOT NULL REFERENCES tracks(id) ON DELETE SET NULL,
   buyer_email text NOT NULL,
   amount_myr integer NOT NULL, -- price in sen (e.g., 1000 = RM10.00)
-  status text DEFAULT 'pending', -- 'pending', 'paid', 'shipped', 'completed'
+  status text DEFAULT 'pending', -- 'pending', 'paid', 'shipped', 'completed', 'refunded'
   hitpay_payment_id text UNIQUE,
+  platform_fee_myr integer, -- 10% of amount, computed at payment time
+  artist_payout_myr integer, -- amount - platform_fee, computed at payment time
   shipping_address text,
   download_token text UNIQUE DEFAULT gen_random_uuid()::text,
   download_expires_at timestamptz DEFAULT (now() + interval '7 days'),

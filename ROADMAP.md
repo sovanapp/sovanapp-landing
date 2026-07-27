@@ -97,7 +97,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 
 #### Fan Side
 - [ ] **Browse** — Kasetape storefront (static page pointing at Sovan product data)
-- [ ] **Cart** — add items, view total
+- [ ] **"Buy now"** — single-item checkout per track (no cart; one purchase = one order)
 - [ ] **Checkout** — HitPay payment (DuitNow QR, FPX, card)
 - [ ] **Receipt** — email with download link (for digital) + shipping confirmation (for physical)
 - [ ] **Download** — purchased digital tracks (MP3 + FLAC options)
@@ -225,9 +225,12 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 | track_id | uuid FK → tracks | |
 | buyer_email | text | Guest checkout |
 | amount_myr | integer | In sen |
-| status | text | 'pending', 'paid', 'shipped', 'completed' |
-| hitpay_payment_id | text | HitPay reference |
-| download_token | text | Unique token for digital delivery |
+| status | text | 'pending', 'paid', 'shipped', 'completed', 'refunded' |
+| hitpay_payment_id | text UNIQUE | HitPay reference (idempotency) |
+| platform_fee_myr | integer | 10% of amount, computed at payment time |
+| artist_payout_myr | integer | amount - platform_fee, computed at payment time |
+| shipping_address | text | |
+| download_token | text UNIQUE | Token-gated digital delivery |
 | download_expires_at | timestamptz | 7 days after purchase |
 | created_at | timestamptz | |
 
@@ -249,7 +252,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 - [ ] **Artist dashboard** — React page: upload, manage products, view sales
 - [ ] **Upload flow** — file → Supabase Storage → track record
 - [ ] **Kasetape storefront** — fetch public product data from Supabase, display grid
-- [ ] **Cart + checkout** — add to cart → HitPay payment page
+- [ ] **"Buy now" checkout** — single-item → HitPay payment page
 - [ ] **HitPay webhook** — Supabase Edge Function: mark order paid, trigger email. Must be idempotent (no-op if `hitpay_payment_id` already marked paid — HitPay retries on timeout).
 - [ ] **Email receipts** — SendGrid: order confirmation + download link
 - [ ] **Download delivery** — token-gated download page
@@ -263,7 +266,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 |---|---|
 | **1-2** | Database schema + Supabase Auth + artist sign-up |
 | **3-4** | Upload flow (Storage + track records) + artist dashboard |
-| **5-6** | Kasetape storefront integration + cart + HitPay checkout |
+| **5-6** | Kasetape storefront integration + "buy now" checkout + HitPay integration |
 | **7-8** | HitPay webhook (idempotent) + email receipts + download delivery |
 | **9** | Buffer: stabilization, edge cases, RLS audit |
 | **10** | Testing with real Kasetape drop, polish, ship |
@@ -291,6 +294,57 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 | **2** | Artist self-signup to Sovan, streaming previews, discovery feed, PWA, name-your-price, social features, **decouple Kasetape from direct Supabase reads** (add API layer) |
 | **3** | Cryptographic signing, human verification badge, on-chain provenance, AA wallet sign-in (opt-in) |
 | **4** | SEA expansion (Airwallex, multi-language), mobile apps, physical fulfillment partners |
+
+---
+
+## 9. Payout Process (Phase 1)
+
+**Phase 1 payout = manual bank transfer, founder-run, weekly.**
+
+HitPay settles funds into Sovan's merchant account. Artist payouts are processed manually:
+
+1. Founder reviews paid orders from the past week
+2. Computes total `artist_payout_myr` per artist (already stored on each order)
+3. Transfers via Malaysian bank transfer (FPX/IBG)
+4. Marks orders as payout-settled (manual Supabase update)
+
+**Why manual:** For a one-drop walking skeleton with a handful of sales, automated split payments (HitPay sub-merchant, Stripe Connect, etc.) add integration complexity with no volume to justify it. Revisit in Phase 2 when self-signup artists need self-service payout.
+
+---
+
+## 10. File Upload Limits
+
+| File type | Max size |
+|---|---|
+| Cover art (JPEG/PNG) | 2 MB |
+| MP3 audio | 20 MB |
+| FLAC audio | 80 MB |
+
+Enforced client-side before upload + server-side in Supabase Storage bucket policy.
+
+---
+
+## 11. Success Criteria (Phase 1 Ships When…)
+
+- [ ] One Kasetape cassette drop sells N units end-to-end
+- [ ] Money lands in Sovan merchant account (via HitPay)
+- [ ] Artist sees the sale in their dashboard and can mark it shipped
+- [ ] Buyer receives email receipt + download link (if digital bonus included)
+- [ ] Founder completes first weekly payout run to the artist
+
+---
+
+## 12. Known Risks & Sharp Edges
+
+| Risk | Mitigation |
+|---|---|
+| **HitPay webhook never arrives** | Founder can manually mark order as paid via Supabase dashboard (escape hatch). No UI needed. |
+| **Artist uploads wrong file/cover** | Artist can replace track files after listing. Basic edit flow in dashboard. |
+| **Buyer loses download link** | Download token valid 7 days; buyer can re-request via email (manual for Phase 1). |
+| **SendGrid 100/day limit** | Fine for early drops; monitor on drop day. Upgrade to paid tier before Phase 2. |
+| **Kasetape silently breaks on schema change** | Kasetape reads only from public `tracks` view. Any schema change affecting that table = cross-check Kasetape site. |
+| **Single-item checkout limits UX** | Acceptable for Phase 1. Cart is Phase 2. |
+| **Manual payout doesn't scale** | By design. Automate when volume justifies it. |
 
 ---
 
