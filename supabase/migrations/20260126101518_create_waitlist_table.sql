@@ -31,11 +31,11 @@ ALTER TABLE waitlist ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Anyone can sign up for waitlist"
   ON waitlist
   FOR INSERT
-  TO anon
+  TO public
   WITH CHECK (true);
 
 CREATE POLICY "Authenticated users can view waitlist"
   ON waitlist
   FOR SELECT
-  TO authenticated
+  TO public
   USING (true);
