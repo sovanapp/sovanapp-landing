@@ -109,13 +109,23 @@ CREATE POLICY "Artists can view own orders"
     WHERE a.user_id = auth.uid()
   ));
 
-CREATE POLICY "Artists can update own orders (mark shipped)"
+-- Column-level grant: artists can only UPDATE the status column on their orders.
+-- Prevents rewriting buyer_email, amount_myr, download_token, etc.
+-- Combined with the RLS policy below, this locks the mutation surface.
+GRANT UPDATE (status) ON orders TO authenticated;
+
+-- Artist can mark own orders as shipped ONLY if currently 'paid'.
+-- Requires status = 'paid' in USING so pending/unpaid orders cannot be skipped.
+CREATE POLICY "Artists can mark own orders as shipped"
   ON orders
   FOR UPDATE
   TO authenticated
-  USING (track_id IN (
-    SELECT t.id FROM tracks t
-    JOIN artists a ON t.artist_id = a.id
-    WHERE a.user_id = auth.uid()
-  ))
+  USING (
+    status = 'paid'
+    AND track_id IN (
+      SELECT t.id FROM tracks t
+      JOIN artists a ON t.artist_id = a.id
+      WHERE a.user_id = auth.uid()
+    )
+  )
   WITH CHECK (status IN ('shipped', 'completed'));

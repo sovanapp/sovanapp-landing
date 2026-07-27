@@ -108,7 +108,7 @@ function App() {
             </form>
 
             <p className="text-xs text-zinc-600">
-              Join thousands of artists reclaiming their creative freedom
+              Be one of the first artists on Sovan
             </p>
           </div>
 
@@ -126,11 +126,11 @@ function App() {
                 <ul className="space-y-2 text-sm text-zinc-500">
                   <li className="flex items-start">
                     <span className="text-orange-500 mr-2">•</span>
-                    <span>Upload MP3, FLAC, WAV — we handle delivery</span>
+                    <span>Upload MP3 + FLAC — we handle delivery</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-orange-500 mr-2">•</span>
-                    <span>Name-your-price or fixed — you decide</span>
+                    <span>Fixed price — set it once, start selling</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-orange-500 mr-2">•</span>
@@ -157,7 +157,7 @@ function App() {
                   </li>
                   <li className="flex items-start">
                     <span className="text-orange-500 mr-2">•</span>
-                    <span>Same-day payout to your bank account</span>
+                    <span>Payout after each drop — on your schedule</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-orange-500 mr-2">•</span>
