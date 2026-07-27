@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Music2, Shield, Users, Disc3 } from 'lucide-react';
+import { Store, CreditCard, Users, Disc3, ExternalLink } from 'lucide-react';
 import { supabase } from './lib/supabase';
 
 function App() {
@@ -63,22 +63,22 @@ function App() {
         <main className="container mx-auto px-6 py-20">
           <div className="max-w-4xl mx-auto text-center mb-20">
             <div className="inline-block mb-6 px-4 py-2 bg-orange-950/30 border border-orange-800/30 rounded-full text-orange-500 text-sm font-medium backdrop-blur-sm">
-              The Future of Independent Music
+              Commerce Engine for Indie Artists
             </div>
 
             <h1 className="text-6xl md:text-7xl font-bold mb-6 leading-tight">
               <span className="bg-gradient-to-r from-zinc-100 via-orange-100 to-zinc-300 bg-clip-text text-transparent">
-                Sovereign Audio
+                Sell Direct.
               </span>
               <br />
               <span className="bg-gradient-to-r from-orange-500 via-orange-400 to-amber-500 bg-clip-text text-transparent">
-                Protocol
+                Keep 90%.
               </span>
             </h1>
 
             <p className="text-xl text-zinc-400 mb-12 max-w-2xl mx-auto leading-relaxed">
-              Empowering indie artists with true ownership and human-verified authenticity.
-              Take control of your music, your rights, your future.
+              The commerce platform that lets indie artists sell music and merch directly to fans.
+              Digital downloads, physical drops, local payments — one engine, your rules.
             </p>
 
             <form onSubmit={handleSubmit} className="max-w-md mx-auto mb-6">
@@ -117,24 +117,24 @@ function App() {
               <div className="absolute inset-0 bg-gradient-to-br from-orange-950/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative">
                 <div className="w-14 h-14 bg-gradient-to-br from-orange-600/20 to-orange-800/20 rounded-xl flex items-center justify-center mb-6 border border-orange-700/30">
-                  <Music2 className="w-7 h-7 text-orange-500" />
+                  <Store className="w-7 h-7 text-orange-500" />
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-zinc-100">Human-Made Music</h3>
+                <h3 className="text-2xl font-bold mb-4 text-zinc-100">Your Storefront</h3>
                 <p className="text-zinc-400 leading-relaxed mb-4">
-                  Verified human creativity in an AI-saturated world. Our protocol ensures authenticity through cryptographic proof and human verification.
+                  Set up in minutes. Upload your music, set your price, and start selling. Digital downloads and physical merch — vinyl, cassettes, CDs — all in one place.
                 </p>
                 <ul className="space-y-2 text-sm text-zinc-500">
                   <li className="flex items-start">
                     <span className="text-orange-500 mr-2">•</span>
-                    <span>Cryptographic authentication of human artists</span>
+                    <span>Upload MP3, FLAC, WAV — we handle delivery</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-orange-500 mr-2">•</span>
-                    <span>Immutable creation timestamps and provenance</span>
+                    <span>Name-your-price or fixed — you decide</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-orange-500 mr-2">•</span>
-                    <span>Protection from AI-generated content dilution</span>
+                    <span>Physical drops with artist-managed shipping</span>
                   </li>
                 </ul>
               </div>
@@ -144,24 +144,24 @@ function App() {
               <div className="absolute inset-0 bg-gradient-to-br from-orange-950/10 to-transparent rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="relative">
                 <div className="w-14 h-14 bg-gradient-to-br from-orange-600/20 to-orange-800/20 rounded-xl flex items-center justify-center mb-6 border border-orange-700/30">
-                  <Shield className="w-7 h-7 text-orange-500" />
+                  <CreditCard className="w-7 h-7 text-orange-500" />
                 </div>
-                <h3 className="text-2xl font-bold mb-4 text-zinc-100">Sovereign Ownership</h3>
+                <h3 className="text-2xl font-bold mb-4 text-zinc-100">Local Payments</h3>
                 <p className="text-zinc-400 leading-relaxed mb-4">
-                  True ownership means true freedom. Your music, your rights, your terms. No intermediaries, no gatekeepers, no compromises.
+                  Built for Southeast Asia. Fans pay with DuitNow QR, FPX, Touch 'n Go, GrabPay, and cards — not just PayPal and credit cards.
                 </p>
                 <ul className="space-y-2 text-sm text-zinc-500">
                   <li className="flex items-start">
                     <span className="text-orange-500 mr-2">•</span>
-                    <span>Direct artist-to-listener relationships</span>
+                    <span>10% flat platform fee — you keep 90%</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-orange-500 mr-2">•</span>
-                    <span>Decentralized rights management and royalties</span>
+                    <span>Same-day payout to your bank account</span>
                   </li>
                   <li className="flex items-start">
                     <span className="text-orange-500 mr-2">•</span>
-                    <span>Permanent control over your creative work</span>
+                    <span>No monthly fees, no hidden charges</span>
                   </li>
                 </ul>
               </div>
@@ -171,7 +171,16 @@ function App() {
           <div className="mt-20 text-center">
             <div className="inline-flex items-center space-x-2 text-zinc-500">
               <Users className="w-5 h-5" />
-              <span className="text-sm">Building the future with indie artists worldwide</span>
+              <span className="text-sm">Built for indie artists, starting in Malaysia</span>
+            </div>
+
+            <div className="mt-8 max-w-lg mx-auto p-6 bg-zinc-900/30 border border-zinc-800/50 rounded-xl backdrop-blur-sm">
+              <p className="text-sm text-zinc-400 mb-3">
+                <span className="text-orange-400 font-semibold">Live case study:</span> Kasetape — a SEA indie culture brand — runs its cassette drops on Sovan.
+              </p>
+              <a href="https://kasetape.com" className="inline-flex items-center text-sm text-orange-400 hover:text-orange-300 transition-colors">
+                See it on Kasetape <ExternalLink className="w-3 h-3 ml-1" />
+              </a>
             </div>
 
             <div className="mt-12 flex justify-center">
@@ -190,7 +199,7 @@ function App() {
         <footer className="container mx-auto px-6 py-8 border-t border-zinc-900 mt-20">
           <div className="flex flex-col md:flex-row justify-between items-center text-sm text-zinc-600">
             <div className="mb-4 md:mb-0">
-              © 2026 Sovan Protocol. All rights reserved.
+              © 2026 Sovan. All rights reserved.
             </div>
             <div className="flex space-x-6">
               <a href="https://sovan.app/privacy" className="hover:text-orange-500 transition-colors">Privacy</a>
