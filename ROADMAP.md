@@ -139,7 +139,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 │  • Artist sign-up / dashboard             │
 │  • Upload flow (→ Supabase Storage)       │
 │  • Product management                     │
-│  • Cart → HitPay checkout                 │
+│  • Buy now → HitPay checkout               │
 │  • Download delivery                      │
 │  • Admin dashboard                        │
 └──────────────────┬───────────────────────┘
@@ -152,7 +152,6 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 │  │         │ │ • tracks  │ │ • images  │  │
 │  │         │ │ • products│ │           │  │
 │  │         │ │ • orders  │ │           │  │
-│  │         │ │ • downloads│ │          │  │
 │  └─────────┘ └──────────┘ └───────────┘  │
 │  ┌──────────────────────────────────────┐ │
 │  │         Edge Functions               │ │
@@ -179,6 +178,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 | **Payments** | HitPay | 0.9% DuitNow, MYR settlement, RM0 monthly |
 | **Webhooks** | Supabase Edge Functions | GitHub Pages can't handle POST callbacks |
 | **Webhook idempotency** | `hitpay_payment_id` UNIQUE constraint | HitPay retries on timeout; edge function must no-op if already paid |
+| **Webhook trust** | Recompute fee/payout from `tracks.price_myr` | Never trust `amount_myr` from the client INSERT (policy is `WITH CHECK (true)` for guest checkout). Webhook is authoritative — cross-check against HitPay's confirmed amount. |
 | **Data isolation** | No public SELECT on `orders` table | Kasetape reads only from `tracks`; buyer emails must never leak |
 | **Email** | SendGrid | 100/day free tier |
 | **File formats** | MP3 + FLAC | Skip WAV for v1 (storage cost, no buyer benefit) |
@@ -232,6 +232,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 | shipping_address | text | |
 | download_token | text UNIQUE | Token-gated digital delivery |
 | download_expires_at | timestamptz | 7 days after purchase |
+| payout_settled_at | timestamptz | Set when founder completes bank transfer |
 | created_at | timestamptz | |
 
 ---

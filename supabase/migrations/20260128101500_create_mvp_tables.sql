@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS orders (
   shipping_address text,
   download_token text UNIQUE DEFAULT gen_random_uuid()::text,
   download_expires_at timestamptz DEFAULT (now() + interval '7 days'),
+  payout_settled_at timestamptz, -- set when founder completes bank transfer (Section 9)
   created_at timestamptz DEFAULT now()
 );
 
