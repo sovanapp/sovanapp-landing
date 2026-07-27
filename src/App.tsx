@@ -26,7 +26,7 @@ function App() {
         }
       } else {
         setStatus('success');
-        setMessage('Welcome to the future of music! Check your email.');
+        setMessage('Welcome to the future of music! You\'re on the list.');
         setEmail('');
       }
     } catch (error) {
@@ -193,9 +193,9 @@ function App() {
               © 2026 Sovan Protocol. All rights reserved.
             </div>
             <div className="flex space-x-6">
-              <a href="#" className="hover:text-orange-500 transition-colors">Privacy</a>
-              <a href="#" className="hover:text-orange-500 transition-colors">Terms</a>
-              <a href="#" className="hover:text-orange-500 transition-colors">Contact</a>
+              <a href="https://sovan.app/privacy" className="hover:text-orange-500 transition-colors">Privacy</a>
+              <a href="https://sovan.app/terms" className="hover:text-orange-500 transition-colors">Terms</a>
+              <a href="mailto:hello@sovan.app" className="hover:text-orange-500 transition-colors">Contact</a>
             </div>
           </div>
         </footer>
