@@ -3,7 +3,8 @@
 > **Last updated:** 28 Jul 2026  
 > **Product:** Sovan — commerce engine for indie artists  
 > **Sibling brand:** [Kasetape](https://kasetape.com) — SEA indie culture movement, Sovan's first customer  
-> **Internal reference:** `masterplan/` (May 2026 — SEA market analysis, payment strategy, Bandcamp research)
+> **Internal reference:** `masterplan/` (May 2026 — SEA market analysis, payment strategy, Bandcamp research)  
+> **💳 Payment gateway:** Stripe (Malaysia). HitPay was unreachable at time of planning (SSL/DNS failure on all domains).
 
 ---
 
@@ -67,7 +68,7 @@
 ### What Nobody Does (Sovan's Gap)
 | Gap | Sovan's Answer |
 |---|---|
-| SEA-local payment rails | HitPay: DuitNow QR, FPX, TNG, GrabPay |
+| SEA-local payment rails | Stripe Malaysia: FPX + cards. Revisit HitPay/Airwallex in Phase 4 for deeper SEA methods (DuitNow QR, TNG). |
 | Mobile-first indie marketplace in SEA | Responsive web → PWA → native |
 | Physical merch checkout for indie artists in SEA | Cassette drops via Kasetape, artist-ships model |
 | Cryptographic provenance (long-term) | Phase 3: signed uploads, verification badges |
@@ -81,7 +82,7 @@
 
 ```
 Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
-  HitPay processes payment ──▶ Email receipt + download ──▶
+  Stripe processes payment ──▶ Email receipt + download ──▶
     Artist ships physical item ──▶ Sale appears in dashboard
 ```
 
@@ -98,15 +99,15 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 #### Fan Side
 - [ ] **Browse** — Kasetape storefront (static page pointing at Sovan product data)
 - [ ] **"Buy now"** — single-item checkout per track (no cart; one purchase = one order)
-- [ ] **Checkout** — HitPay payment (DuitNow QR, FPX, card)
+- [ ] **Checkout** — Stripe payment (FPX, card)
 - [ ] **Receipt** — email with download link (for digital) + shipping confirmation (for physical)
 - [ ] **Download** — purchased digital tracks (MP3 + FLAC options)
 - [ ] **No fan account required** — guest checkout with email
 
 #### Platform Side
-- [ ] **Supabase database** — artists, tracks, products, orders, downloads
+- [ ] **Supabase database** — artists, tracks, orders
 - [ ] **Supabase Storage** — audio files + images
-- [ ] **HitPay integration** — create payment, handle webhook (via Supabase Edge Function)
+- [ ] **Stripe integration** — create payment, handle webhook (via Supabase Edge Function)
 - [ ] **SendGrid** — order confirmation, download links
 - [ ] **Admin view** — see all orders, basic reconciliation
 
@@ -139,7 +140,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 │  • Artist sign-up / dashboard             │
 │  • Upload flow (→ Supabase Storage)       │
 │  • Product management                     │
-│  • Buy now → HitPay checkout               │
+│  • Buy now → Stripe checkout              │
 │  • Download delivery                      │
 │  • Admin dashboard                        │
 └──────────────────┬───────────────────────┘
@@ -150,20 +151,19 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 │  │  Auth   │ │ Database  │ │  Storage  │  │
 │  │ (email) │ │ • artists │ │ • audio   │  │
 │  │         │ │ • tracks  │ │ • images  │  │
-│  │         │ │ • products│ │           │  │
 │  │         │ │ • orders  │ │           │  │
 │  └─────────┘ └──────────┘ └───────────┘  │
 │  ┌──────────────────────────────────────┐ │
 │  │         Edge Functions               │ │
-│  │  • hitpay-webhook (payment callback) │ │
+│  │  • stripe-webhook (payment callback) │ │
 │  │  • send-receipt (email trigger)      │ │
 │  └──────────────────────────────────────┘ │
 └──────────────────┬───────────────────────┘
                    │
 ┌──────────────────▼───────────────────────┐
 │          External Services               │
-│  HitPay    — payment processing          │
-│  SendGrid  — transactional email         │
+│  Stripe   — payment processing           │
+│  SendGrid — transactional email          │
 └──────────────────────────────────────────┘
 ```
 
@@ -175,16 +175,16 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 | **Key management** | Invisible/custodial | Sign server-side later; v1 has no signing at all |
 | **Database** | Supabase PostgreSQL | Already running, free tier, RLS |
 | **Storage** | Supabase Storage | Audio + images, built-in CDN |
-| **Payments** | HitPay | 0.9% DuitNow, MYR settlement, RM0 monthly |
+| **Payments** | Stripe (Malaysia) | FPX + cards, MYR settlement. ~3% + RM1 fee. Reliable, well-documented, idempotency built in. HitPay was tested 28 Jul 2026 and all domains (hitpay.com, hitpay.com.my, app.hitpay.com) were unreachable. |
 | **Webhooks** | Supabase Edge Functions | GitHub Pages can't handle POST callbacks |
-| **Webhook idempotency** | `hitpay_payment_id` UNIQUE constraint | HitPay retries on timeout; edge function must no-op if already paid |
-| **Webhook trust** | Recompute fee/payout from `tracks.price_myr` | Never trust `amount_myr` from the client INSERT (policy is `WITH CHECK (true)` for guest checkout). Webhook is authoritative — cross-check against HitPay's confirmed amount. |
+| **Webhook idempotency** | Stripe idempotency keys + `stripe_payment_intent_id` UNIQUE constraint | Stripe guarantees exactly-once processing with idempotency keys; edge function must no-op if already paid |
+| **Webhook trust** | Recompute fee/payout from `tracks.price_myr` at webhook time | Never trust `amount_myr` from the client INSERT (policy is `WITH CHECK (true)` for guest checkout). Webhook cross-checks against Stripe's confirmed amount. |
 | **Data isolation** | No public SELECT on `orders` table | Kasetape reads only from `tracks`; buyer emails must never leak |
-| **Email** | SendGrid | 100/day free tier |
+| **Email** | SendGrid (Twilio) | 100/day free tier. Now under Twilio, same product. |
 | **File formats** | MP3 + FLAC | Skip WAV for v1 (storage cost, no buyer benefit) |
 | **Platform fee** | Flat 10% | Tiered pricing is v2 |
 | **Merch fulfillment** | Artist ships | No logistics integration |
-| **Geography** | Malaysia only | Matches HitPay rails + Kasetape identity |
+| **Geography** | Malaysia only | Matches Stripe MY + Kasetape identity |
 | **Mobile** | Responsive CSS | PWA/native later |
 
 ---
@@ -216,6 +216,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 | price_myr | integer | In sen (e.g., 1000 = RM10.00) |
 | is_physical | boolean | True for cassettes/vinyl |
 | physical_type | text | 'cassette', 'vinyl', 'cd', null |
+| is_published | boolean | Default false |
 | created_at | timestamptz | |
 
 ### orders
@@ -226,9 +227,9 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 | buyer_email | text | Guest checkout |
 | amount_myr | integer | In sen |
 | status | text | 'pending', 'paid', 'shipped', 'completed', 'refunded' |
-| hitpay_payment_id | text UNIQUE | HitPay reference (idempotency) |
-| platform_fee_myr | integer | 10% of amount, computed at payment time |
-| artist_payout_myr | integer | amount - platform_fee, computed at payment time |
+| stripe_payment_intent_id | text UNIQUE | Stripe reference (idempotency) |
+| platform_fee_myr | integer | 10% of amount, computed at webhook time |
+| artist_payout_myr | integer | amount - platform_fee, computed at webhook time |
 | shipping_address | text | |
 | download_token | text UNIQUE | Token-gated digital delivery |
 | download_expires_at | timestamptz | 7 days after purchase |
@@ -240,7 +241,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 ## 5. What's Built vs Needs Building
 
 ### ✅ Done
-- [x] Sovan landing page (sovan.app — needs copy update for dual-platform)
+- [x] Sovan landing page (sovan.app)
 - [x] Kasetape landing page (kasetape.com — static HTML)
 - [x] Waitlist (Supabase, working on live site)
 - [x] Supabase project (`gowgkxepodrlyxsobzxk`)
@@ -253,8 +254,8 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 - [ ] **Artist dashboard** — React page: upload, manage products, view sales
 - [ ] **Upload flow** — file → Supabase Storage → track record
 - [ ] **Kasetape storefront** — fetch public product data from Supabase, display grid
-- [ ] **"Buy now" checkout** — single-item → HitPay payment page
-- [ ] **HitPay webhook** — Supabase Edge Function: mark order paid, trigger email. Must be idempotent (no-op if `hitpay_payment_id` already marked paid — HitPay retries on timeout).
+- [ ] **"Buy now" checkout** — single-item → Stripe payment page
+- [ ] **Stripe webhook** — Supabase Edge Function: mark order paid, trigger email. Must be idempotent (no-op if `stripe_payment_intent_id` already marked paid).
 - [ ] **Email receipts** — SendGrid: order confirmation + download link
 - [ ] **Download delivery** — token-gated download page
 - [ ] **Admin orders view** — see all orders, mark as shipped
@@ -267,8 +268,8 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 |---|---|
 | **1-2** | Database schema + Supabase Auth + artist sign-up |
 | **3-4** | Upload flow (Storage + track records) + artist dashboard |
-| **5-6** | Kasetape storefront integration + "buy now" checkout + HitPay integration |
-| **7-8** | HitPay webhook (idempotent) + email receipts + download delivery |
+| **5-6** | Kasetape storefront integration + "buy now" checkout + Stripe integration |
+| **7-8** | Stripe webhook (idempotent) + email receipts + download delivery |
 | **9** | Buffer: stabilization, edge cases, RLS audit |
 | **10** | Testing with real Kasetape drop, polish, ship |
 
@@ -283,7 +284,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 | 3 | File formats? | MP3 + FLAC only. Skip WAV. |
 | 4 | Platform fee? | Flat 10%. Tiered pricing is v2. |
 | 5 | Merch fulfillment? | Artist ships. No logistics integration. |
-| 6 | Malaysia only? | Yes — matches HitPay + Kasetape. |
+| 6 | Malaysia only? | Yes — matches Stripe MY + Kasetape. |
 | 7 | Mobile strategy? | Responsive CSS first. PWA later. Native even later. |
 
 ---
@@ -294,7 +295,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 |---|---|
 | **2** | Artist self-signup to Sovan, streaming previews, discovery feed, PWA, name-your-price, social features, **decouple Kasetape from direct Supabase reads** (add API layer) |
 | **3** | Cryptographic signing, human verification badge, on-chain provenance, AA wallet sign-in (opt-in) |
-| **4** | SEA expansion (Airwallex, multi-language), mobile apps, physical fulfillment partners |
+| **4** | SEA expansion: Airwallex or HitPay (if operational) for DuitNow QR/TNG/GrabPay, multi-language, mobile apps, physical fulfillment partners |
 
 ---
 
@@ -302,14 +303,14 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 
 **Phase 1 payout = manual bank transfer, founder-run, weekly.**
 
-HitPay settles funds into Sovan's merchant account. Artist payouts are processed manually:
+Stripe settles funds into Sovan's bank account. Artist payouts are processed manually:
 
 1. Founder reviews paid orders from the past week
 2. Computes total `artist_payout_myr` per artist (already stored on each order)
 3. Transfers via Malaysian bank transfer (FPX/IBG)
-4. Marks orders as payout-settled (manual Supabase update)
+4. Marks orders with `payout_settled_at` timestamp
 
-**Why manual:** For a one-drop walking skeleton with a handful of sales, automated split payments (HitPay sub-merchant, Stripe Connect, etc.) add integration complexity with no volume to justify it. Revisit in Phase 2 when self-signup artists need self-service payout.
+**Why manual:** For a one-drop walking skeleton with a handful of sales, automated split payments (Stripe Connect, etc.) add integration complexity with no volume to justify it. Revisit in Phase 2 when self-signup artists need self-service payout.
 
 ---
 
@@ -328,25 +329,42 @@ Enforced client-side before upload + server-side in Supabase Storage bucket poli
 ## 11. Success Criteria (Phase 1 Ships When…)
 
 - [ ] One Kasetape cassette drop sells N units end-to-end
-- [ ] Money lands in Sovan merchant account (via HitPay)
+- [ ] Money lands in Sovan bank account (via Stripe)
 - [ ] Artist sees the sale in their dashboard and can mark it shipped
 - [ ] Buyer receives email receipt + download link (if digital bonus included)
 - [ ] Founder completes first weekly payout run to the artist
 
 ---
 
-## 12. Known Risks & Sharp Edges
+## 12. Viability Scan (28 Jul 2026)
+
+Services checked live via browser at planning time:
+
+| Service | Status | Free Tier | Notes |
+|---|---|---|---|
+| Supabase | ✅ Live | $0 — 50K MAU, 500MB DB, 1GB storage | Already in use |
+| SendGrid (Twilio) | ✅ Live | 100 emails/day | Merged into Twilio; same product |
+| Airwallex | ✅ Live | Pay-per-use | Malaysian site detected; Phase 4 |
+| **HitPay** | 🔴 Down | N/A | `hitpay.com` = SSL error; `hitpay.com.my` = DNS not found; `app.hitpay.com` = DNS not found |
+| **Stripe MY** | ✅ Selected | Pay-per-use (~3% + RM1) | Replacing HitPay for Phase 1 |
+
+**Decision:** Stripe replaces HitPay for Phase 1. If HitPay comes back online, re-evaluate in Phase 4 for DuitNow QR and e-wallet methods.
+
+---
+
+## 13. Known Risks & Sharp Edges
 
 | Risk | Mitigation |
 |---|---|
-| **HitPay webhook never arrives** | Founder can manually mark order as paid via Supabase dashboard (escape hatch). No UI needed. |
+| **Stripe webhook never arrives** | Founder can manually mark order as paid via Supabase dashboard (escape hatch). No UI needed. |
 | **Artist uploads wrong file/cover** | Artist can replace track files after listing. Basic edit flow in dashboard. |
 | **Buyer loses download link** | Download token valid 7 days; buyer can re-request via email (manual for Phase 1). |
 | **SendGrid 100/day limit** | Fine for early drops; monitor on drop day. Upgrade to paid tier before Phase 2. |
 | **Kasetape silently breaks on schema change** | Kasetape reads only from public `tracks` view. Any schema change affecting that table = cross-check Kasetape site. |
 | **Single-item checkout limits UX** | Acceptable for Phase 1. Cart is Phase 2. |
 | **Manual payout doesn't scale** | By design. Automate when volume justifies it. |
+| **Stripe ~3% fee vs HitPay's 0.9%** | Acceptable for walking skeleton. Artist take-home ~87% (after 10% Sovan + ~3% Stripe). Revisit if volume grows. |
 
 ---
 
-*This roadmap replaces the previous version (which assumed a standalone Sovan product). The dual-platform Kasetape × Sovan strategy — conceived in a prior session — is now the foundation.*
+*This roadmap replaces the previous version (which assumed a standalone Sovan product). The dual-platform Kasetape × Sovan strategy — conceived in a prior session — is now the foundation. Payment gateway switched from HitPay to Stripe on 28 Jul 2026 after viability scan.*

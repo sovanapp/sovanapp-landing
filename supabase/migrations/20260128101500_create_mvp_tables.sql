@@ -41,16 +41,16 @@ CREATE TABLE IF NOT EXISTS tracks (
 );
 
 -- Orders table
--- hitpay_payment_id is UNIQUE — ensures webhook idempotency.
--- HitPay retries webhooks on timeout; the edge function must no-op
--- if the payment_id already has status = 'paid'.
+-- stripe_payment_intent_id is UNIQUE — ensures webhook idempotency.
+-- Stripe guarantees exactly-once processing with idempotency keys;
+-- the edge function must no-op if the payment_intent_id already marked paid.
 CREATE TABLE IF NOT EXISTS orders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   track_id uuid NOT NULL REFERENCES tracks(id) ON DELETE SET NULL,
   buyer_email text NOT NULL,
   amount_myr integer NOT NULL, -- price in sen (e.g., 1000 = RM10.00)
   status text DEFAULT 'pending', -- 'pending', 'paid', 'shipped', 'completed', 'refunded'
-  hitpay_payment_id text UNIQUE,
+  stripe_payment_intent_id text UNIQUE,
   platform_fee_myr integer, -- 10% of amount, computed at payment time
   artist_payout_myr integer, -- amount - platform_fee, computed at payment time
   shipping_address text,
