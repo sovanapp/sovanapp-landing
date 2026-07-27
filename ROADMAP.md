@@ -93,7 +93,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 - [ ] **Upload tracks** — MP3 + FLAC, album art, metadata (title, genre, description)
 - [ ] **Set pricing** — fixed price (MYR), single-track or album
 - [ ] **List physical item** — cassette/vinyl/CD with price, artist handles shipping
-- [ ] **Dashboard** — see sales, revenue total, order list
+- [ ] **Dashboard** — see sales, revenue total, order list, mark as shipped
 
 #### Fan Side
 - [ ] **Browse** — Kasetape storefront (static page pointing at Sovan product data)
@@ -178,6 +178,8 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 | **Storage** | Supabase Storage | Audio + images, built-in CDN |
 | **Payments** | HitPay | 0.9% DuitNow, MYR settlement, RM0 monthly |
 | **Webhooks** | Supabase Edge Functions | GitHub Pages can't handle POST callbacks |
+| **Webhook idempotency** | `hitpay_payment_id` UNIQUE constraint | HitPay retries on timeout; edge function must no-op if already paid |
+| **Data isolation** | No public SELECT on `orders` table | Kasetape reads only from `tracks`; buyer emails must never leak |
 | **Email** | SendGrid | 100/day free tier |
 | **File formats** | MP3 + FLAC | Skip WAV for v1 (storage cost, no buyer benefit) |
 | **Platform fee** | Flat 10% | Tiered pricing is v2 |
@@ -248,7 +250,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 - [ ] **Upload flow** — file → Supabase Storage → track record
 - [ ] **Kasetape storefront** — fetch public product data from Supabase, display grid
 - [ ] **Cart + checkout** — add to cart → HitPay payment page
-- [ ] **HitPay webhook** — Supabase Edge Function: mark order paid, trigger email
+- [ ] **HitPay webhook** — Supabase Edge Function: mark order paid, trigger email. Must be idempotent (no-op if `hitpay_payment_id` already marked paid — HitPay retries on timeout).
 - [ ] **Email receipts** — SendGrid: order confirmation + download link
 - [ ] **Download delivery** — token-gated download page
 - [ ] **Admin orders view** — see all orders, mark as shipped
@@ -262,8 +264,9 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 | **1-2** | Database schema + Supabase Auth + artist sign-up |
 | **3-4** | Upload flow (Storage + track records) + artist dashboard |
 | **5-6** | Kasetape storefront integration + cart + HitPay checkout |
-| **7-8** | HitPay webhook + email receipts + download delivery |
-| **9** | Testing with real Kasetape drop, polish, ship |
+| **7-8** | HitPay webhook (idempotent) + email receipts + download delivery |
+| **9** | Buffer: stabilization, edge cases, RLS audit |
+| **10** | Testing with real Kasetape drop, polish, ship |
 
 ---
 
@@ -285,7 +288,7 @@ Artist uploads ──▶ Kasetape lists it ──▶ Fan buys it ──▶
 
 | Phase | Scope |
 |---|---|
-| **2** | Artist self-signup to Sovan, streaming previews, discovery feed, PWA, name-your-price, social features |
+| **2** | Artist self-signup to Sovan, streaming previews, discovery feed, PWA, name-your-price, social features, **decouple Kasetape from direct Supabase reads** (add API layer) |
 | **3** | Cryptographic signing, human verification badge, on-chain provenance, AA wallet sign-in (opt-in) |
 | **4** | SEA expansion (Airwallex, multi-language), mobile apps, physical fulfillment partners |
 

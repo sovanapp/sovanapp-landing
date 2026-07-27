@@ -41,13 +41,17 @@ CREATE TABLE IF NOT EXISTS tracks (
 );
 
 -- Orders table
+-- hitpay_payment_id is UNIQUE — ensures webhook idempotency.
+-- HitPay retries webhooks on timeout; the edge function must no-op
+-- if the payment_id already has status = 'paid'.
 CREATE TABLE IF NOT EXISTS orders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   track_id uuid NOT NULL REFERENCES tracks(id) ON DELETE SET NULL,
   buyer_email text NOT NULL,
-  amount_myr integer NOT NULL, -- price in sen
+  amount_myr integer NOT NULL, -- price in sen (e.g., 1000 = RM10.00)
   status text DEFAULT 'pending', -- 'pending', 'paid', 'shipped', 'completed'
-  hitpay_payment_id text,
+  hitpay_payment_id text UNIQUE,
+  shipping_address text,
   download_token text UNIQUE DEFAULT gen_random_uuid()::text,
   download_expires_at timestamptz DEFAULT (now() + interval '7 days'),
   created_at timestamptz DEFAULT now()
@@ -84,12 +88,16 @@ CREATE POLICY "Anyone can view published tracks"
   TO public
   USING (is_published = true);
 
--- Orders: anon can insert (guest checkout), artist can view own orders
+-- Orders: anon can INSERT (guest checkout), anon CANNOT read (buyer emails).
+-- Artist can SELECT + UPDATE their own orders (view sales, mark shipped).
 CREATE POLICY "Anyone can create an order"
   ON orders
   FOR INSERT
   TO public
   WITH CHECK (true);
+
+-- IMPORTANT: No public SELECT on orders. Buyer emails must not leak.
+-- Kasetape's static site only reads from tracks table.
 
 CREATE POLICY "Artists can view own orders"
   ON orders
@@ -100,3 +108,14 @@ CREATE POLICY "Artists can view own orders"
     JOIN artists a ON t.artist_id = a.id
     WHERE a.user_id = auth.uid()
   ));
+
+CREATE POLICY "Artists can update own orders (mark shipped)"
+  ON orders
+  FOR UPDATE
+  TO authenticated
+  USING (track_id IN (
+    SELECT t.id FROM tracks t
+    JOIN artists a ON t.artist_id = a.id
+    WHERE a.user_id = auth.uid()
+  ))
+  WITH CHECK (status IN ('shipped', 'completed'));
