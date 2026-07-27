@@ -173,6 +173,17 @@ function App() {
               <Users className="w-5 h-5" />
               <span className="text-sm">Building the future with indie artists worldwide</span>
             </div>
+
+            <div className="mt-12 flex justify-center">
+              <div className="relative">
+                <div className="w-32 h-32 rounded-full bg-gradient-to-br from-zinc-800 to-zinc-900 border border-zinc-700/50 flex items-center justify-center shadow-2xl shadow-orange-950/30">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-orange-600/30 to-amber-600/20 flex items-center justify-center">
+                    <Disc3 className="w-10 h-10 text-orange-400 animate-spin" style={{ animationDuration: '8s' }} />
+                  </div>
+                </div>
+                <div className="absolute -inset-4 bg-gradient-to-r from-orange-600/10 via-amber-500/5 to-orange-600/10 rounded-full blur-xl"></div>
+              </div>
+            </div>
           </div>
         </main>
 
